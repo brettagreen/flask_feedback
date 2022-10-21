@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="/static/style.css">
+  <title>{% block title %} {% endblock %}</title>
+</head>
+<body>
+  <div id="nav">
+    <nav>
+  <ul style="list-style-type:none">
+    {% if 'username' not in session %}
+      <li><a href="/register">Register</a></li>
+      <li><a href="/login">Login</a></li>  
+    {% else %}
+      <li><a href="/logout">Logout</a></li>
+      <li><a href="/users/{{user.username}}">Home</a></li>
+    {% endif %}
+  </ul>
+</nav>
+</div>
+    {% for msg in get_flashed_messages() %}
+    <h2>{{msg}}</h2>
+    {% endfor %}
+    
+    {% block content %} {% endblock %}
+</body>
+
+</html>
