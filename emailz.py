@@ -1,21 +1,25 @@
-import smtplib
-from email.message import EmailMessage
+from sendgrid import SendGridAPIClient
+import os
+from sendgrid.helpers.mail import Mail, Email, To, Content
 
-def send_pw_email(email, URLtoken):
-    msg = EmailMessage()
-    msg.set_content(URLtoken)
+def send_pw_email(recipient, URLtoken):
+    #sg = sendgrid.SendGridAPIClient(api_key=os.environ.get('SENDGRID_API_KEY'))
+    sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
+    from_email = Email(os.environ.get('SENDGRID_API_SENDER'))
+    to_email = To(recipient)
+    subject = 'password reset link'
+    content = Content('text/plain', URLtoken)
+    mail = Mail(from_email, to_email, subject, content)
 
-    # me == the sender's email address
-    # you == the recipient's email address
-    msg['Subject'] = 'password reset link'
-    msg['From'] = 'admin@flaskfeedback.com'
-    msg['To'] = email
+    # Get a JSON-ready representation of the Mail object
+    mail_json = mail.get()
 
-    # Send the message via our own SMTP server.
-    print('-----------------------------')
-    print('getting here, before localhost')
-    s = smtplib.SMTP('localhost:5000', 1025)
-    s.send_message(msg)
-    print('-----------------------------')
-    print('getting here, after localhost')
-    s.quit()
+    print('API KEY', os.environ.get('SENDGRID_API_KEY'))
+    print('FROM EMAIL', os.environ.get('SENDGRID_API_SENDER'))
+    print('TO EMAIL', recipient)
+    print('URL TOKEN', URLtoken)
+
+    # Send an HTTP POST request to /mail/send
+    response = sg.client.mail.send.post(request_body=mail_json)
+    print('STATUS CODE', response.status_code)
+    print('RESPONSE HEADERS', response.headers)

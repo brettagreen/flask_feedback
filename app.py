@@ -3,15 +3,15 @@
 from forms import AddUserForm, AddLoginForm, AddFeedbackForm, PasswordResetRequestForm, PasswordResetForm
 from flask import Flask, render_template, redirect, session, flash
 from models import db, connect_db, User, Feedback, Token
-import emailz
 from secrets import token_urlsafe
+from emailz import send_pw_email
 
 app = Flask(__name__)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///flask_feedback'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = True
 app.config['SECRET_KEY'] = "bush-did-911"
-
 
 connect_db(app)
 db.create_all()
@@ -31,6 +31,7 @@ def home():
 @app.route('/verify_token/<string:token>', methods=['GET', 'POST'])
 def verify_token(token):
     token = Token.query.get(token)
+    form = PasswordResetForm()
     if form.validate_on_submit():
         pw1 = form.password1.data
         pw2 = form.password2.data
@@ -40,7 +41,7 @@ def verify_token(token):
             user = User.get_user(token.username)
             user.password = hashed
             db.session.add(user)
-            db.session.delete(token)
+            Token.query.filter_by(token=token.token).delete()
             db.session.commit()
             session['username'] = user.username
             if user.is_admin:
@@ -66,6 +67,7 @@ def request_reset():
     form = PasswordResetRequestForm()
 
     if form.validate_on_submit():
+
         email = form.email.data
         username = form.username.data
         token = token_urlsafe(32)
@@ -74,11 +76,11 @@ def request_reset():
         db.session.commit()
         
         url_token = f'http://localhost:5000/verify_token/{token}'
-        emailz.send_pw_email(email, url_token)
+        send_pw_email(email, url_token)
 
         return redirect('/login')
     else:
-        return render_template('index.html', title="request pw rest", 
+        return render_template('index.html', title="request pw reset", 
                             form_heading="Provide your email. We will send you a link so you can reset your password.", form=form)
 
 @app.route('/register', methods=['GET', 'POST'])
